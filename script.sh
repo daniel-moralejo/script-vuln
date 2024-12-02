@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Función para instalar figlet si no está instalado
+# Funciones de instalación
 install_figlet() {
   if ! command -v figlet &> /dev/null; then
     echo "Instalando figlet..."
@@ -15,6 +15,19 @@ install_wfuzz() {
   fi
 }
 
+install_metasploit() {
+  if ! command -v msfconsole &> /dev/null; then
+    echo "Instalando Metasploit..."
+    sudo apt install metasploit_framework
+  fi }
+
+install_dirbuster() {
+  if ! command -v dirbuster &> /dev/null; then
+    echo "Instalando DirBuster..."
+    sudo apt install dirbuster
+  fi
+  }
+
 # Función para el menú principal
 menu() {
   clear
@@ -26,12 +39,12 @@ menu() {
   echo "4. Ping y escaneo Nmap"
   echo "5. Exiftool: Ver metadatos"
   echo "6. Wfuzz: Fuzzing web"
-  echo "7. Otro saludo con figlet"
+  echo "7. Usar Metaesploit"
   echo "0. Salir"
   echo "======================================================================================================="
 }
 
-# Análisis avanzado de logs de NGINX
+# Funcion de analisis de logs
 analisis_logs_nginx() {
   echo "===== Análisis avanzado de logs de Nginx ====="
   echo "1. Direcciones IP que han intentado realizar solicitudes a horas poco habituales"
@@ -70,6 +83,29 @@ analisis_logs_nginx() {
       ;;
   esac
 }
+
+#Funcion de metaesploit
+metasploit() {
+  read -p "Introduce la IP de la víctima (rhosts): " rhosts
+  read -p "Introduce la palabra clave para buscar exploits (mysql, apache, samba...): " service
+  read -p "Introduce el puerto (rport): " rport
+
+  echo "Buscando exploits para $service..."
+  msfconsole -q -x "search $service; exit" | grep exploit > exploits.txt
+
+  echo "Exploits disponibles para $service:"
+  cat exploits.txt
+  read -p "Introduce el nombre del exploit a utilizar (por ejemplo, exploit/windows/smb/ms17_010_eternalblue): " exploit
+
+  echo "use $exploit" > metasploit_commands.rc
+  echo "set RHOSTS $rhosts" >> metasploit_commands.rc
+  echo "set RPORT $rport" >> metasploit_commands.rc
+  echo "run" >> metasploit_commands.rc
+
+  echo "Ejecutando Metasploit..."
+  msfconsole -r metasploit_commands.rc
+  }
+
 
 # Bucle principal del menú
 while true; do
@@ -148,15 +184,32 @@ while true; do
       ;;
 
     6)
+      echo "Escaneo de Directorios"
+      echo "1. Utilizar Wfuzz"
+      echo "2. Utilizar DirBuster"
+      read -p "Selecciona una opción: " opcion_fuzz
+
+      case $opcion_fuzz in
+      1)
       install_wfuzz
-      read -p "Introduce la URL o direccion IP a escanear con Wfuzz: " url
+      read -p "Introduce la URL o dirección IP a escanear con Wfuzz: " url
       wfuzz -c -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt --hc 404 -u $url/FUZZ > wfuzz.txt
       cat wfuzz.txt
+      ;;
+      2)
+      install_dirbuster
+      read -p "Introduce la URL o dirección IP a escanear con DirBuster: " url
+      dirbuster -u $url -l /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -o dirbuster.txt
+      cat dirbuster.txt
+      ;;
+      *)
+      echo "Opción inválida."
+      ;;
+      esac
       read -p "Presiona Enter para continuar..."
       ;;
     7)
-      install_figlet
-      figlet "Hasta luego!"
+      metasploit
       read -p "Presiona Enter para continuar..."
       ;;
     0)
