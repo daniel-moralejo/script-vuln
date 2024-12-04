@@ -8,6 +8,20 @@ install_figlet() {
   fi
 }
 
+install_cowsay() {
+  if ! command -v cowsay &> /dev/null; then
+    echo "Instalando figlet..."
+    sudo apt install cowsay
+  fi
+}
+
+install_fping() {
+  if ! command -v fping &> /dev/null; then
+    echo "Instalando figlet..."
+    sudo apt install fping
+  fi
+}
+
 install_wfuzz() {
   if ! command -v wfuzz &> /dev/null; then
   echo "Instalando wfuzz..."
@@ -19,7 +33,8 @@ install_metasploit() {
   if ! command -v msfconsole &> /dev/null; then
     echo "Instalando Metasploit..."
     sudo apt install metasploit_framework
-  fi }
+  fi
+  }
 
 install_dirbuster() {
   if ! command -v dirbuster &> /dev/null; then
@@ -31,17 +46,18 @@ install_dirbuster() {
 # Función para el menú principal
 menu() {
   clear
-  toilet -w 150 -f smshadow SCRIP DE HERRAMIENTAS
-  echo "======================================================================================================="
-  echo "1. Saludo con figlet"
-  echo "2. Análisis de logs de Nginx"
-  echo "3. Ataque de diccionario con John the Ripper"
-  echo "4. Ping y escaneo Nmap"
-  echo "5. Exiftool: Ver metadatos"
-  echo "6. Wfuzz: Fuzzing web"
+  toilet --gay -w 150 -f smshadow SCRIPT DE
+  toilet --gay -w 150 -f shadow HERRAMIENTAS
+  echo "===================================================================================="
+  echo "1. Saludo"
+  echo "2. Análisis de logs"
+  echo "3. Ataque de diccionario"
+  echo "4. Fingerprinting"
+  echo "5. Footprinting"
+  echo "6. Fuzzing web"
   echo "7. Usar Metaesploit"
   echo "0. Salir"
-  echo "======================================================================================================="
+  echo "===================================================================================="
 }
 
 # Funcion de analisis de logs
@@ -95,7 +111,8 @@ metasploit() {
 
   echo "Exploits disponibles para $service:"
   cat exploits.txt
-  read -p "Introduce el nombre del exploit a utilizar (por ejemplo, exploit/windows/smb/ms17_010_eternalblue): " exploit
+  read -p "Introduce el nombre del exploit a utilizar (ej: exploit/windows/smb/ms17_010_eternalblue): " exploit
+  rm exploits.txt
 
   echo "use $exploit" > metasploit_commands.rc
   echo "set RHOSTS $rhosts" >> metasploit_commands.rc
@@ -113,8 +130,8 @@ while true; do
   read -p "Selecciona una opción: " opcion
   case $opcion in
     1)
-      install_figlet
-      figlet "HOLA QUE TAL"
+      install_cowsay
+      cowsay "HOLA QUE TAL"
       read -p "Presiona Enter para continuar..."
       ;;
     2)
@@ -124,16 +141,43 @@ while true; do
       read -p "Introduce el hash: " hash
       echo $hash > hash.txt
       hashid -m $hash
-      read -p "Indica el algoritmo que se va a usar(raw-md5, raw-sha1, raw-sha256 ...): " algoritmo
-      john --wordlist=/usr/share/john/password.lst --format=$algoritmo --rules hash.txt --fork=8
-      john --show hash.txt --format=$algoritmo > john.txt
-      echo "-----------CONTRASEÑA------------"
-      cat john.txt | grep "?" | awk -F ':' '{print $2}'
-      echo "---------------------------------"
+      read -p "Indica el diccionario que quieres usar (por defecto usa /usr/share/john/password.lst): " diccionario
+      diccionario=${diccionario:-/usr/share/john/password.lst}
+
+      echo "Selecciona la herramienta para romper el hash:"
+      echo "1. John the Ripper"
+      echo "2. Hashcat"
+      read -p "Selecciona una opcion: " herramienta
+
+      case $herramienta in
+        1)
+          echo "Usando John the Ripper..."
+          read -p "Indica el algoritmo que se va a usar (raw-md5, raw-sha1, raw-sha256 ...): " algoritmo
+          john --wordlist=$diccionario --format=$algoritmo --rules hash.txt --fork=8
+          john --show hash.txt --format=$algoritmo > john.txt
+          echo "-----------CONTRASEÑA------------"
+          cat john.txt | grep "?" | awk -F ':' '{print $2}'
+          echo "---------------------------------"
+          rm john.txt
+          ;;
+        2)
+          echo "Usando Hashcat..."
+          read -p "Indica el algoritmo que se va a usar (0, 100, 900, ...): " algoritmo
+          hashcat -m $algoritmo -a 0 -o hashcat.txt --remove hash.txt $diccionario
+          echo "-----------CONTRASEÑA------------"
+          cat hashcat.txt | grep -oP '(?<=:)[^:]*$'
+          echo "---------------------------------"
+          #rm hashcat.txt
+          ;;
+        *)
+          echo "Opción inválida."
+          ;;
+      esac
+
       rm hash.txt
-      rm john.txt
       read -p "Presiona Enter para continuar..."
       ;;
+
     4)
       read -p "Introduce la red: " redlocal
       fping -g -a $redlocal 2> /dev/null | grep -v 'Unreachable'
@@ -171,7 +215,10 @@ while true; do
           ;;
         4)
           read -p "Introduce el archivo: " archivo
-          read -p "Introduce el campo de metadatos a editar: " campo
+          echo "------------------------------"
+          exiftool $archivo | awk -F ':' 'NR > 1 {print $1}'
+          echo "------------------------------"
+          read -p "Introduce un campo de los de arriba para editar: " campo
           read -p "Introduce el nuevo valor: " valor
           exiftool -"$campo"="$valor" "$archivo"
           echo "Metadatos actualizados para el archivo $archivo."
@@ -186,7 +233,8 @@ while true; do
     6)
       echo "Escaneo de Directorios"
       echo "1. Utilizar Wfuzz"
-      echo "2. Utilizar DirBuster"
+      echo "2. Utilizar DirBuster(interfaz gráfica)"
+      ceho "0. Volver al menú"
       read -p "Selecciona una opción: " opcion_fuzz
 
       case $opcion_fuzz in
@@ -199,8 +247,11 @@ while true; do
       2)
       install_dirbuster
       read -p "Introduce la URL o dirección IP a escanear con DirBuster: " url
-      dirbuster -u $url -l /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -o dirbuster.txt
+      dirbuster -u $url -l /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
       cat dirbuster.txt
+      ;;
+      0)
+      return
       ;;
       *)
       echo "Opción inválida."
