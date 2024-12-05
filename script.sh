@@ -67,6 +67,7 @@ analisis_logs_nginx() {
   echo "2. Direcciones IP que han realizado intentos de acceso repetido a recursos inexistentes"
   echo "3. Direcciones IP que realizan un número elevado de solicitudes en un periodo corto"
   echo "4. Accesos a directorios restringidos o sensibles"
+  echo "5. Realizar un informe completo"
   echo "0. Volver al menú principal"
   read -p "Selecciona una opción: " opcion_logs
   case $opcion_logs in
@@ -77,7 +78,7 @@ analisis_logs_nginx() {
       ;;
     2)
       read -p "Indica el archivo de logs: " archivo
-      awk '$9 ~ /404/' $archivo | awk '{print $1}' | sort | uniq -c | sort -nr
+      awk '$9 ~ /404/' $archivo | sort | uniq -c | sort -nr
       read -p "Presiona Enter para continuar..."
       ;;
     3)
@@ -88,6 +89,21 @@ analisis_logs_nginx() {
     4)
       read -p "Indica el archivo de logs: " archivo
       awk '$7 ~ /\/etc\/passwd|\/var\/|\/proc\//' $archivo | sort | uniq -c | sort -nr
+      read -p "Presiona Enter para continuar..."
+      ;;
+    5)
+      read -p "Indica el archivo de logs: " archivo
+      echo "Direcciones IP que han intentado realizar solicitudes a horas poco habituales" > informe.txt
+      awk '$4 ~ /:0[0-6]:[0-5][0-9]:[0-5][0-9]/' $archivo | sort | uniq -c | sort -nr >> informe.txt
+      echo "" >> informe.txt
+      echo "Direcciones IP que han realizado intentos de acceso repetido a recursos inexistentes" >> informe.txt
+      awk '$9 ~ /404/' $archivo | sort | uniq -c | sort -nr >> informe.txt
+      echo "" >> informe.txt
+      echo "Direcciones IP que realizan un número elevado de solicitudes en un periodo corto" >> informe.txt
+      awk '{count[$1]++} END {for (ip in count) if (count[ip] > 100) print ip, count[ip]}' $archivo >> informe.txt
+      echo "" >> informe.txt
+      echo "Accesos a directorios restringidos o sensibles" >> informe.txt
+      awk '$7 ~ /\/etc\/passwd|\/var\/|\/proc\//' $archivo | sort | uniq -c | sort -nr >> informe.txt
       read -p "Presiona Enter para continuar..."
       ;;
     0)
