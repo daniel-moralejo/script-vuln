@@ -104,6 +104,10 @@ analisis_logs_nginx() {
       echo "" >> informe.txt
       echo "Accesos a directorios restringidos o sensibles" >> informe.txt
       awk '$7 ~ /\/etc\/passwd|\/var\/|\/proc\//' $archivo | sort | uniq -c | sort -nr >> informe.txt
+      read -p "¿Quieres leer el informe ahora? (s/n): " leer_informe
+      if [[ "$leer_informe" == "s" ]]; then
+        cat informe_apache.txt
+      fi
       read -p "Presiona Enter para continuar..."
       ;;
     0)
@@ -183,7 +187,7 @@ while true; do
           echo "-----------CONTRASEÑA------------"
           cat hashcat.txt | grep -oP '(?<=:)[^:]*$'
           echo "---------------------------------"
-          #rm hashcat.txt
+          rm hashcat.txt
           ;;
         *)
           echo "Opción inválida."
